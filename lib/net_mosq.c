@@ -76,6 +76,7 @@ Contributors:
 #include "net_mosq.h"
 #include "time_mosq.h"
 #include "util_mosq.h"
+#include <sys/time.h>
 
 #ifdef WITH_TLS
 int tls_ex_index_mosq = -1;
@@ -997,7 +998,7 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 #endif
 }
 
-ssize_t net__write(struct mosquitto *mosq, const void *buf, size_t count)
+ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, size_t count)
 {
 #ifdef WITH_TLS
 	int ret;
@@ -1008,9 +1009,32 @@ ssize_t net__write(struct mosquitto *mosq, const void *buf, size_t count)
 #ifdef WITH_TLS
 	if(mosq->ssl){
 		mosq->want_write = false;
-		printf("Broker writing content: %x, with size %d\n", buf, count);
-    fflush(stdout);
+		/*unsigned char *readable_payload = (unsigned char *)mosquitto__malloc(count * sizeof(unsigned char) + 1);
+		for(int i=0; i<(int)count; i++) {
+			if(((unsigned char)(buf[i])) != '\0') {
+				readable_payload[i] = (unsigned char)(buf[i]);
+			} else { readable_payload[i] = '$';}	
+		}
+		readable_payload[count]='\0';
+		
+		printf("Broker writing content to %s: %s, with size %d\n", mosq->id, readable_payload, (int)count);
+    		fflush(stdout);*/
+
+		clockid_t clock = CLOCK_MONOTONIC;
+		// Grab time before network communication
+		FILE *fp = fopen("tls-latency/with_tls_latency.csv", "w");
+		struct timespec tp0;
+                clock_gettime(clock, &tp0);
+		fprintf(fp, "%ld,", (tp0.tv_sec*1000) + round(tp0.tv_nsec/1.0e6));
+
 		ret = SSL_write(mosq->ssl, buf, (int)count);
+		
+		// Grab time after network communication
+		struct timeval tp1;
+                clock_gettime(clock, &tp1);
+		fprintf(fp, "%ld\n", (tp1.tv_sec*1000) + round(tp1.tv_nsec/1.0e6));
+		fclose(fp);
+
 		if(ret < 0){
 			ret = net__handle_ssl(mosq, ret);
 		}
@@ -1019,7 +1043,21 @@ ssize_t net__write(struct mosquitto *mosq, const void *buf, size_t count)
 		/* Call normal write/send */
 #endif
 
-	return send(mosq->sock, buf, count, MSG_NOSIGNAL);
+	// Grab time before network communication
+        FILE *fp = fopen("tls-latency/no_tls_latency.csv", "w");
+	struct timespec tp2;
+        clock_gettime(clock, &tp2);
+        fprintf(fp, "%ld,", (tp2.tv_sec*1000) + round(tp2.tv_nsec/1.0e6));
+	
+	ssize_t result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
+	
+	// Grab time after network communication
+        struct timespec tp3;
+        clock_gettime(clock, &tp3);
+        fprintf(fp, "%ld\n", (tp3.tv_sec*1000) + round(tp3.tv_nsec/1.0e6));
+        fclose(fp);
+
+	return result;
 
 #ifdef WITH_TLS
 	}
