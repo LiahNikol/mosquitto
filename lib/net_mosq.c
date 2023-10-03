@@ -999,7 +999,7 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 #endif
 }
 
-ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, size_t count)
+ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t count)
 {
 #ifdef WITH_TLS
 	int ret;
@@ -1024,40 +1024,49 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, size_t count)
     		fflush(stdout);*/
 
 		// Grab time before network communication
-		FILE *fp = fopen("tls-latency/with_tls_latency.csv", "a");
-		struct timespec tp0;
-                clock_gettime(clock, &tp0);
-		fprintf(fp, "%ld,", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec);
+		if (command == CMD_PUBLISH) {
+			FILE *fp = fopen("tls-latency/with_tls_latency.csv", "a");
+			struct timespec tp0;
+                	clock_gettime(clock, &tp0);
+			fprintf(fp, "%ld,", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec);
+		}
 
 		ret = SSL_write(mosq->ssl, buf, (int)count);
 		
 		// Grab time after network communication
-		struct timespec tp1;
-                clock_gettime(clock, &tp1);
-		fprintf(fp, "%ld\n", (long)(tp1.tv_sec*1000*1.0e6) + tp1.tv_nsec);
-		fclose(fp);
+		if (command == CMD_PUBLISH) {
+			struct timespec tp1;
+                	clock_gettime(clock, &tp1);
+			fprintf(fp, "%ld\n", (long)(tp1.tv_sec*1000*1.0e6) + tp1.tv_nsec);
+			fclose(fp);
+		}
 
 		if(ret < 0){
 			ret = net__handle_ssl(mosq, ret);
 		}
+
 		return (ssize_t )ret;
 	}else{
 		/* Call normal write/send */
 #endif
 
 	// Grab time before network communication
-        FILE *fp = fopen("tls-latency/no_tls_latency.csv", "a");
-	struct timespec tp2;
-        clock_gettime(clock, &tp2);
-        fprintf(fp, "%ld,", (long)(tp2.tv_sec*1000*1.0e6) + tp2.tv_nsec);
-	
+	if (command == CMD_PUBLISH) {
+        	FILE *fp = fopen("tls-latency/no_tls_latency.csv", "a");
+		struct timespec tp2;
+        	clock_gettime(clock, &tp2);
+        	fprintf(fp, "%ld,", (long)(tp2.tv_sec*1000*1.0e6) + tp2.tv_nsec);
+	}
+
 	ssize_t result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
 	
 	// Grab time after network communication
-        struct timespec tp3;
-        clock_gettime(clock, &tp3);
-        fprintf(fp, "%ld\n", (long)(tp3.tv_sec*1000*1.0e6) + tp3.tv_nsec);
-        fclose(fp);
+        if (command == CMD_PUBLISH) {
+		struct timespec tp3;
+        	clock_gettime(clock, &tp3);
+        	fprintf(fp, "%ld\n", (long)(tp3.tv_sec*1000*1.0e6) + tp3.tv_nsec);
+        	fclose(fp);
+	}
 
 	return result;
 
