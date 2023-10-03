@@ -77,6 +77,7 @@ Contributors:
 #include "time_mosq.h"
 #include "util_mosq.h"
 #include <sys/time.h>
+#include <math.h>
 
 #ifdef WITH_TLS
 int tls_ex_index_mosq = -1;
@@ -1006,6 +1007,8 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, size_t count)
 	assert(mosq);
 
 	errno = 0;
+	clockid_t clock = CLOCK_MONOTONIC;
+
 #ifdef WITH_TLS
 	if(mosq->ssl){
 		mosq->want_write = false;
@@ -1020,19 +1023,18 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, size_t count)
 		printf("Broker writing content to %s: %s, with size %d\n", mosq->id, readable_payload, (int)count);
     		fflush(stdout);*/
 
-		clockid_t clock = CLOCK_MONOTONIC;
 		// Grab time before network communication
-		FILE *fp = fopen("tls-latency/with_tls_latency.csv", "w");
+		FILE *fp = fopen("tls-latency/with_tls_latency.csv", "a");
 		struct timespec tp0;
                 clock_gettime(clock, &tp0);
-		fprintf(fp, "%ld,", (tp0.tv_sec*1000) + round(tp0.tv_nsec/1.0e6));
+		fprintf(fp, "%ld,", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec);
 
 		ret = SSL_write(mosq->ssl, buf, (int)count);
 		
 		// Grab time after network communication
-		struct timeval tp1;
+		struct timespec tp1;
                 clock_gettime(clock, &tp1);
-		fprintf(fp, "%ld\n", (tp1.tv_sec*1000) + round(tp1.tv_nsec/1.0e6));
+		fprintf(fp, "%ld\n", (long)(tp1.tv_sec*1000*1.0e6) + tp1.tv_nsec);
 		fclose(fp);
 
 		if(ret < 0){
@@ -1044,17 +1046,17 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, size_t count)
 #endif
 
 	// Grab time before network communication
-        FILE *fp = fopen("tls-latency/no_tls_latency.csv", "w");
+        FILE *fp = fopen("tls-latency/no_tls_latency.csv", "a");
 	struct timespec tp2;
         clock_gettime(clock, &tp2);
-        fprintf(fp, "%ld,", (tp2.tv_sec*1000) + round(tp2.tv_nsec/1.0e6));
+        fprintf(fp, "%ld,", (long)(tp2.tv_sec*1000*1.0e6) + tp2.tv_nsec);
 	
 	ssize_t result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
 	
 	// Grab time after network communication
         struct timespec tp3;
         clock_gettime(clock, &tp3);
-        fprintf(fp, "%ld\n", (tp3.tv_sec*1000) + round(tp3.tv_nsec/1.0e6));
+        fprintf(fp, "%ld\n", (long)(tp3.tv_sec*1000*1.0e6) + tp3.tv_nsec);
         fclose(fp);
 
 	return result;
