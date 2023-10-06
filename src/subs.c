@@ -659,31 +659,39 @@ int sub__messages_queue(const char *source_id, const char *topic, uint8_t qos, i
 	db__message_write(), which could remove the message if ref_count==0.
 	*/
 	db__msg_store_ref_inc(*stored);
-
-  
+ 
 	HASH_FIND(hh, db.subs, split_topics[0], strlen(split_topics[0]), subhier);
 	if(subhier){
-    
-    // Grab time before network communication
     clockid_t clock = CLOCK_MONOTONIC;
-    int n = 34; char filepath[n];
-    snprintf(filepath, n, "tls-latency/latency-port-%hu.csv", stored->source_listener->port);
-		FILE *fp = fopen(filepath, "a");
-		struct timespec tp0;
-    clock_gettime(clock, &tp0);
-		
+    struct timespec tp0;
+    struct timespec tp1;
+    FILE *fp;
+    size_t basestr = 31;
+    size_t portstr = 4;
+    size_t subscountdigits = 5; // extra room just in case
+    size_t nsize = basestr + portstr + subscountdigits; char filepath[nsize];
+
+    if ((*stored)->source_listener) { 
+    	// Grab time before network communication
+    	clock_gettime(clock, &tp0);
+    	printf("Checkpoint\n");
+    }
+
 		rc = sub__search(subhier, split_topics, source_id, topic, qos, retain, *stored);
     
-    // Grab time after network communication
-		struct timespec tp1;
-    clock_gettime(clock, &tp1);
-    fprintf(fp, "%ld,%ld\n", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec, (long)(tp1.tv_sec*1000*1.0e6) + tp1.tv_nsec);
-		fclose(fp);
+    if ((*stored)->source_listener) {
+    	//Grab time after network communication
+    	clock_gettime(clock, &tp1);
+    	snprintf(filepath, nsize, "tls-latency/latency-port-%u-%d.csv", (*stored)->source_listener->port, (*stored)->dest_id_count);
+    	fp = fopen(filepath, "a");
+    	fprintf(fp, "%ld,%ld\n", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec, (long)(tp1.tv_sec*1000*1.0e6) + tp1.tv_nsec);
+    	fclose(fp);
+    }
 	}
   
   // Let me see all of stored's subscribers
-  for (int i = 0; i < stored->dest_id_count; i++) {
-    printf("Target (subscriber) %d: %s\n", i, stored->dest_ids[i]);
+  for (int i = 0; i < (*stored)->dest_id_count; i++) {
+    printf("Target (subscriber) %d: %s\n", i, (*stored)->dest_ids[i]);
   }
 
 	if(retain){

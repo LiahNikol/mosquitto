@@ -1012,6 +1012,7 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 #ifdef WITH_TLS
 	if(mosq->ssl){
 		mosq->want_write = false;
+		
 		/*unsigned char *readable_payload = (unsigned char *)mosquitto__malloc(count * sizeof(unsigned char) + 1);
 		for(int i=0; i<(int)count; i++) {
 			if(((unsigned char)(buf[i])) != '\0') {
@@ -1023,9 +1024,10 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 		printf("Broker writing content to %s: %s, with size %d\n", mosq->id, readable_payload, (int)count);
     		fflush(stdout);*/
 
+		FILE *fp;
 		// Grab time before network communication
 		if (command == CMD_PUBLISH) {
-			FILE *fp = fopen("tls-latency/with_tls_latency.csv", "a");
+			fp = fopen("tls-latency/with_tls_latency.csv", "a");
 			struct timespec tp0;
                 	clock_gettime(clock, &tp0);
 			fprintf(fp, "%ld,", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec);
@@ -1050,9 +1052,10 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 		/* Call normal write/send */
 #endif
 
+        FILE *fp;
 	// Grab time before network communication
 	if (command == CMD_PUBLISH) {
-        	FILE *fp = fopen("tls-latency/no_tls_latency.csv", "a");
+		fp = fopen("tls-latency/no_tls_latency.csv", "a");
 		struct timespec tp2;
         	clock_gettime(clock, &tp2);
         	fprintf(fp, "%ld,", (long)(tp2.tv_sec*1000*1.0e6) + tp2.tv_nsec);
