@@ -52,6 +52,7 @@ Contributors:
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "mosquitto_broker_internal.h"
 #include "memory_mosq.h"
@@ -659,10 +660,31 @@ int sub__messages_queue(const char *source_id, const char *topic, uint8_t qos, i
 	*/
 	db__msg_store_ref_inc(*stored);
 
+  
 	HASH_FIND(hh, db.subs, split_topics[0], strlen(split_topics[0]), subhier);
 	if(subhier){
+    
+    // Grab time before network communication
+    clockid_t clock = CLOCK_MONOTONIC;
+    int n = 34; char filepath[n];
+    snprintf(filepath, n, "tls-latency/latency-port-%hu.csv", stored->source_listener->port);
+		FILE *fp = fopen(filepath, "a");
+		struct timespec tp0;
+    clock_gettime(clock, &tp0);
+		
 		rc = sub__search(subhier, split_topics, source_id, topic, qos, retain, *stored);
+    
+    // Grab time after network communication
+		struct timespec tp1;
+    clock_gettime(clock, &tp1);
+    fprintf(fp, "%ld,%ld\n", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec, (long)(tp1.tv_sec*1000*1.0e6) + tp1.tv_nsec);
+		fclose(fp);
 	}
+  
+  // Let me see all of stored's subscribers
+  for (int i = 0; i < stored->dest_id_count; i++) {
+    printf("Target (subscriber) %d: %s\n", i, stored->dest_ids[i]);
+  }
 
 	if(retain){
 		rc2 = retain__store(topic, *stored, split_topics);
