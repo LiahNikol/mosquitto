@@ -2,7 +2,7 @@
 
 #define KEY_SIZE 128
 
-unsigned char ukey[KEY_SIZE / 8] = "muP7DFrEC#ch3(6P" // TODO: share with subscriber, who will use AES_set_decrypt_key to generate the key schedule and AES_cbc_decrypt()
+unsigned char ukey[KEY_SIZE / 8] = "muP7DFrEC#ch3(6P"; // TODO: share with subscriber, who will use AES_set_decrypt_key to generate the key schedule and AES_cbc_decrypt()
 
 struct plaintext_ciphertext_pair {
     uint8_t *plaintext;
@@ -18,18 +18,18 @@ void encrypt(uint8_t *in, uint8_t *out, size_t len) {
     AES_set_encrypt_key(ukey, KEY_SIZE, &key);
     unsigned char iv[AES_BLOCK_SIZE];
     assert(getrandom(iv, AES_BLOCK_SIZE,GRND_NONBLOCK) != -1);
-    AES_cbc_encrypt(in, out, len, key, iv, AES_ENCRYPT); // length preserving encryption
+    AES_cbc_encrypt(in, out, len, &key, iv, AES_ENCRYPT); // length preserving encryption
 }
 
 uint8_t *checkLookupTable(uint8_t *payload, size_t p_len /*, uint8_t *topic*/) {
     struct plaintext_ciphertext_pair *tmp;
 
     HASH_FIND(hh, entries, payload, p_len, tmp);
-    if (tmp == null) { // no entry was found
+    if (tmp == NULL) { // no entry was found
         tmp = (struct plaintext_ciphertext_pair *)mosquitto__malloc(sizeof(struct plaintext_ciphertext_pair));
 
         uint8_t *p_buf = (uint8_t *)mosquitto__malloc(sizeof(uint8_t) * p_len);
-        strncpy(p_buf, payload, p_len); // TODO: memcopy or memmv
+        memcpy(p_buf, payload, p_len); 
         tmp->plaintext = p_buf;
         
         uint8_t *c_buf = (uint8_t *)mosquitto__malloc(sizeof(uint8_t) * p_len);
@@ -38,7 +38,7 @@ uint8_t *checkLookupTable(uint8_t *payload, size_t p_len /*, uint8_t *topic*/) {
 
         HASH_ADD(hh, entries, plaintext, p_len, tmp);
 
-        debug(size_t p_len)
+        //debug(size_t p_len);
     }
     return tmp->ciphertext;
 }

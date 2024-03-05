@@ -1,5 +1,6 @@
 #include <openssl/aes.h>
 #include <sys/random.h>
+#include <assert.h>
 #include "memory_mosq.h"
 #include "mosquitto_internal.h"
 
