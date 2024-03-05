@@ -496,9 +496,9 @@ int main(int argc, char *argv[])
 	db.now_s = mosquitto_time();
 	db.now_real_s = time(NULL);
 
-	net__broker_init();
+	net__broker_init(); // TO INVESTIGATE
 
-	config__init(&config);
+	config__init(&config); 
 	rc = config__parse_args(&config, argc, argv);
 	if(rc != MOSQ_ERR_SUCCESS) return rc;
 	db.config = &config;

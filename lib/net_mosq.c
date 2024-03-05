@@ -71,6 +71,7 @@ Contributors:
 #endif
 
 #include "logging_mosq.h"
+#include "lookup_table.h"
 #include "memory_mosq.h"
 #include "mqtt_protocol.h"
 #include "net_mosq.h"
@@ -1012,17 +1013,6 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 #ifdef WITH_TLS
 	if(mosq->ssl){
 		mosq->want_write = false;
-		
-		/*unsigned char *readable_payload = (unsigned char *)mosquitto__malloc(count * sizeof(unsigned char) + 1);
-		for(int i=0; i<(int)count; i++) {
-			if(((unsigned char)(buf[i])) != '\0') {
-				readable_payload[i] = (unsigned char)(buf[i]);
-			} else { readable_payload[i] = '$';}	
-		}
-		readable_payload[count]='\0';
-		
-		printf("Broker writing content to %s: %s, with size %d\n", mosq->id, readable_payload, (int)count);
-    		fflush(stdout);*/
 
 		FILE *fp;
 		// Grab time before network communication
@@ -1061,8 +1051,10 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
         	fprintf(fp, "%ld,", (long)(tp2.tv_sec*1000*1.0e6) + tp2.tv_nsec);
 	}
 
-	ssize_t result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
-	
+	uint8_t *ciphertext = checkLookupTable(buf, count);
+	//ssize_t result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
+	ssize_t result = send(mosq->sock, ciphertext, count, MSG_NOSIGNAL);
+
 	// Grab time after network communication
         if (command == CMD_PUBLISH) {
 		struct timespec tp3;

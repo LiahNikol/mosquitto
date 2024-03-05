@@ -69,9 +69,6 @@ static int tls_ex_index_listener = -1;
 
 #include "sys_tree.h"
 
-SSL *globalSubSSL;
-int global_subSSL_set = 0;
-
 /* For EMFILE handling */
 static mosq_sock_t spare_sock = INVALID_SOCKET;
 
@@ -127,7 +124,7 @@ struct mosquitto *net__socket_accept(struct mosquitto__listener_sock *listensock
 	char address[1024];
 #endif
 
-	new_sock = accept(listensock->sock, NULL, 0);
+	new_sock = accept(listensock->sock, NULL, 0); // this creates the unencrypted connection
 	if(new_sock == INVALID_SOCKET){
 #ifdef WIN32
 		errno = WSAGetLastError();
@@ -188,7 +185,7 @@ struct mosquitto *net__socket_accept(struct mosquitto__listener_sock *listensock
 	}
 
 	new_context = context__init(new_sock);
-	if(!new_context){
+	if(!new_context) {
 		COMPAT_CLOSE(new_sock);
 		return NULL;
 	}
@@ -211,15 +208,6 @@ struct mosquitto *net__socket_accept(struct mosquitto__listener_sock *listensock
 	/* TLS init */
 	if(new_context->listener->ssl_ctx){
 		new_context->ssl = SSL_new(new_context->listener->ssl_ctx);
-
-		if (!(new_context->want_write)) {
-			if (!global_subSSL_set) {
-				globalSubSSL = new_context->ssl;
-				global_subSSL_set = 1;
-			}
-			new_context->ssl = globalSubSSL;
-			printf("Subscriber now using shared SSL object\n");
-		}
 		
 		if(!new_context->ssl){
 			context__cleanup(new_context, true);

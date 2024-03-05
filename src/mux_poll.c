@@ -260,7 +260,7 @@ static void loop_handle_reads_writes(void)
 	socklen_t len;
 	int rc;
 
-	HASH_ITER(hh_sock, db.contexts_by_sock, context, ctxt_tmp){
+	HASH_ITER(hh_sock, db.contexts_by_sock, context, ctxt_tmp) {
 		if(context->pollfd_index < 0){
 			continue;
 		}
