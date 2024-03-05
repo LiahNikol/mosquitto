@@ -54,6 +54,6 @@ void debug(size_t count) {
 	readable_payload[count]='\0';
 		
 	printf("Broker writing content to %s: %s, with size %d\n", mosq->id, readable_payload, (int)count);
-    fflush(stdout);*/
+    fflush(stdout);
 }*/
 // TODO: Design a protocol for removing entries from the table
