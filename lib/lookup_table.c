@@ -36,7 +36,7 @@ uint8_t *checkLookupTable(uint8_t *payload, size_t p_len /*, uint8_t *topic*/) {
         tmp->plaintext = p_buf;
         
         uint8_t *c_buf = (uint8_t *)mosquitto__malloc(sizeof(uint8_t) * p_len);
-        unsigned char *iv = (unsigned char *)mosquitto__malloc(AES_BLOCK_SIZE * sizeof(unsigned char));
+        unsigned char iv[AES_BLOCK_SIZE];
         assert(getrandom(iv, AES_BLOCK_SIZE, GRND_NONBLOCK) != -1);
 
         encrypt(p_buf, c_buf, iv, p_len);
