@@ -28,6 +28,7 @@ OBJS=	mosquitto.o \
 		handle_unsubscribe.o \
 		keepalive.o \
 		logging.o \
+		lookup_table.o \
 		loop.o \
 		memory_mosq.o \
 		memory_public.o \
@@ -154,6 +155,9 @@ keepalive.o : keepalive.c mosquitto_broker_internal.h
 	${CROSS_COMPILE}${CC} $(BROKER_CPPFLAGS) $(BROKER_CFLAGS) -c $< -o $@
 
 logging.o : logging.c mosquitto_broker_internal.h
+	${CROSS_COMPILE}${CC} $(BROKER_CPPFLAGS) $(BROKER_CFLAGS) -c $< -o $@
+
+lookup_table.o : ../lib/lookup_table.c ../lib/lookup_table.h
 	${CROSS_COMPILE}${CC} $(BROKER_CPPFLAGS) $(BROKER_CFLAGS) -c $< -o $@
 
 loop.o : loop.c mosquitto_broker_internal.h
