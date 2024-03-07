@@ -1000,7 +1000,7 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 #endif
 }
 
-ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t count)
+ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t count, int preserve_topic)
 {
 #ifdef WITH_TLS
 	int ret;
@@ -1056,11 +1056,42 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 	}*/
 	
 	// IF OUR CUSTOM EFFICIENT-SECURITY PROTOCOL IS ENABLED
-	if (command == CMD_PUBLISH) {
+	if (command == CMD_PUBLISH && preserve_topic == 1) {
+		printf("SENDING PUBLISH!\n");
+		uint8_t rlf, msb, lsb; // remaining length field, msb, lsb
+		rlf = buf[1]; msb = buf[2]; lsb = buf[3]; // first byte is cmd
+		printf("rlf: 0x%x, msb: 0x%x, lsb: 0x%x\n", rlf, msb, lsb);
+		uint16_t topic_len = (uint16_t) ((msb << 8) + lsb);
+		printf("topic length %u\n", (unsigned int) topic_len);
+		size_t total_skip = (size_t) 1 + 1 + 1 + 1 + topic_len; // TODO: mid should be present when qos > 0
+		printf("total skip: %lu\n", total_skip);
+
+		uint8_t *ciphertext = checkLookupTable(&(buf[total_skip]), count - total_skip);
+		size_t cipher_len = (count - total_skip) + 16 - ((count - total_skip) % 16);
+		uint8_t joined[total_skip + cipher_len];
+
+		memcpy(joined, buf, total_skip);
+		memcpy(joined + total_skip, ciphertext, cipher_len);
+		
+		printf("cipher length: %lu\n", cipher_len);
+		printf("Joined length: %lu\n", total_skip + cipher_len);
+
+		result = send(mosq->sock, joined, total_skip + cipher_len, MSG_NOSIGNAL);
+		if (result != (total_skip + cipher_len)) { // something went wrong...trigger error
+			result = 0;
+		}
+		//result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
+		return result;
+	} else if (command == CMD_PUBLISH && preserve_topic == 0) {
 		printf("SENDING PUBLISH!\n");
 		uint8_t *ciphertext = checkLookupTable(buf, count);
-        	result = send(mosq->sock, ciphertext, count, MSG_NOSIGNAL);
-		return result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
+		size_t padded_len = count + 16 - (count % 16);
+		printf("Padded length: %lu\n", padded_len);
+        	result = send(mosq->sock, ciphertext, padded_len, MSG_NOSIGNAL);
+		if (result != padded_len) { // something went wrong...trigger error
+			result = 0;
+		}
+		return result;
     	} else {
 		if (command == CMD_CONNACK) {
                         printf("SENDING CONNACK!\n");
@@ -1070,7 +1101,6 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
                         printf("SENDING SUBACK!\n");
 		}
     		return result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
-
     	}
 //#endif		
 /**

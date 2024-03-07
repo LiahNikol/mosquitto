@@ -94,6 +94,7 @@ int handle__publish(struct mosquitto *context)
 		db__msg_store_free(msg);
 		return MOSQ_ERR_MALFORMED_PACKET;
 	}
+	printf("Message topic: %s, length of topic: %u\n", msg->topic, slen);
 	if(!slen && context->protocol != mosq_p_mqtt5){
 		/* Invalid publish topic, disconnect client. */
 		db__msg_store_free(msg);

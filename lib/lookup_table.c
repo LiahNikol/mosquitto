@@ -4,7 +4,7 @@
 
 #define KEY_SIZE 128
 
-unsigned char ukey[KEY_SIZE / 8] = "muP7DFrEC#ch3(6P"; // TODO: share with subscriber, who will use AES_set_decrypt_key to generate the key schedule and AES_cbc_decrypt()
+unsigned char ukey[] = {0x91, 0x1e, 0x65, 0xae, 0x7e, 0x5e, 0x84, 0xe3, 0xcf, 0x84, 0xe9, 0x3c, 0x49, 0xb2, 0x00, 0x73}; // generate 128 bit AES_CBC encryption key
 
 struct plaintext_ciphertext_pair {
     uint8_t *plaintext;
@@ -26,23 +26,33 @@ void encrypt(uint8_t *in, uint8_t *out, unsigned char *iv, size_t len) {
 uint8_t *checkLookupTable(uint8_t *payload, size_t p_len /*, uint8_t *topic*/) {
     //struct plaintext_ciphertext_pair *tmp;
 	
-    printf("Payload length: %lu", p_len);
+    printf("Payload length: %lu\n", p_len);
 
-    // TODO: confirm that we won't get this far if there are no subscribers
     //HASH_FIND_STR(entries, payload, tmp);
     //if (tmp == NULL) { // no entry was found
         //tmp = (struct plaintext_ciphertext_pair *)mosquitto__malloc(sizeof(struct plaintext_ciphertext_pair));
 
-        uint8_t *p_buf = (uint8_t *)mosquitto__malloc(p_len * sizeof(uint8_t));
-        memcpy(p_buf, payload, p_len); 
-        //tmp->plaintext = p_buf;
-        
-        uint8_t *c_buf = (uint8_t *)mosquitto__malloc(p_len * sizeof(uint8_t));
-        //unsigned char iv = "abcdefghijklmno";
-        //assert(getrandom(iv, AES_BLOCK_SIZE, GRND_NONBLOCK) != -1);
+    	// determine how much we need to pad the plaintext before decrypting
+        uint8_t n = AES_BLOCK_SIZE - (p_len % AES_BLOCK_SIZE);
+	uint8_t padded_len = p_len + n;
 
-        //encrypt(p_buf, c_buf, iv, p_len);
+        uint8_t *p_buf = (uint8_t *)mosquitto__malloc(p_len * sizeof(uint8_t));
+	uint8_t *padded_p_buf = (uint8_t *)mosquitto__malloc(padded_len * sizeof(uint8_t));
+	
+        memcpy(p_buf, payload, p_len); 
+        //tmp->plaintext = p_buf; // store the UNpadded version
         
+	memset(padded_p_buf, n, n);
+	memcpy(padded_p_buf, payload, p_len);
+
+        uint8_t *c_buf = (uint8_t *)mosquitto__malloc(padded_len * sizeof(uint8_t));
+        unsigned char iv[] = {0xf2, 0xef, 0x72, 0x7b, 0xa6, 0x32, 0xfa, 0xc0, 0xe0, 0xaf, 0xbc, 0x96, 0xf2, 0xa3, 0xa0, 0xd0}; //generate 128 bit IV
+        
+	//assert(getrandom(iv, AES_BLOCK_SIZE, GRND_NONBLOCK) != -1);
+
+        encrypt(p_buf, c_buf, iv, p_len);
+       	printf("Done encrypting\n");
+
         //tmp->ciphertext = c_buf;
         //HASH_ADD_KEYPTR(hh, entries, tmp->plaintext, p_len, tmp);
    //}
@@ -55,13 +65,13 @@ void debug (uint8_t *out, size_t len, int plaintext) {
   for (int i = 0; i < len; i++) {
     uint8_t curChar = out[i];
     if (curChar == '\0') 
-      curChar = '$';
+      curChar = '!';
     buf[i] = curChar;
   }
   buf[len] = '\0';
   
   if (plaintext) {
-    printf("The plaintext in human readable format: %s", buf);
+    printf("The plaintext in human readable format: %s\n", buf);
   } else {
     printf("The ciphertext in human readable format: %s", buf);
   }

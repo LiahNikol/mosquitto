@@ -78,10 +78,13 @@ int packet__alloc(struct mosquitto__packet *packet)
 	if(!packet->payload) return MOSQ_ERR_NOMEM;
 
 	packet->payload[0] = packet->command;
+	printf("packet_alloc() adding command byte: 0x%x\n", packet->command);
 	for(i=0; i<packet->remaining_count; i++){
 		packet->payload[i+1] = remaining_bytes[i];
+		printf("adding remaining length byte 0x%x\n", remaining_bytes[i]);
 	}
 	packet->pos = 1U + (uint8_t)packet->remaining_count;
+	printf("final pos before writing topic length: %d\n", packet->pos);
 
 	return MOSQ_ERR_SUCCESS;
 }
@@ -258,13 +261,18 @@ int packet__write(struct mosquitto *mosq)
 
 	while(mosq->current_out_packet){
 		packet = mosq->current_out_packet;
-
+		int flag = 1;
 		while(packet->to_process > 0){
-			write_length = net__write(mosq, &(packet->payload[packet->pos]), packet->command, packet->to_process);
+			printf("bytes to process: %u, packet pos: %u, flag: %d\n", packet->to_process, packet->pos, flag);
+			write_length = net__write(mosq, &(packet->payload[packet->pos]), packet->command, packet->to_process, flag);
 			if(write_length > 0){
 				G_BYTES_SENT_INC(write_length);
+				write_length = packet->to_process; // added by me
+				printf("To process (before): %u\n", packet->to_process);
 				packet->to_process -= (uint32_t)write_length;
+				printf("To process: %u\n", packet->to_process);
 				packet->pos += (uint32_t)write_length;
+				flag = 0;
 			}else{
 #ifdef WIN32
 				errno = WSAGetLastError();

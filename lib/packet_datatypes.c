@@ -64,6 +64,8 @@ void packet__write_byte(struct mosquitto__packet *packet, uint8_t byte)
 	assert(packet->pos+1 <= packet->packet_length);
 
 	packet->payload[packet->pos] = byte;
+
+	printf("packet__write_byte() 0x%x @ position %d\n", byte, packet->pos);
 	packet->pos++;
 }
 
@@ -86,6 +88,7 @@ void packet__write_bytes(struct mosquitto__packet *packet, const void *bytes, ui
 	assert(packet->pos+count <= packet->packet_length);
 
 	memcpy(&(packet->payload[packet->pos]), bytes, count);
+	printf("packet__write_bytes() @ position %d\n", packet->pos);
 	packet->pos += count;
 }
 
@@ -143,6 +146,7 @@ int packet__read_string(struct mosquitto__packet *packet, char **str, uint16_t *
 void packet__write_string(struct mosquitto__packet *packet, const char *str, uint16_t length)
 {
 	assert(packet);
+	printf("packet__write_string() @ position %d\n", packet->pos);
 	packet__write_uint16(packet, length);
 	packet__write_bytes(packet, str, length);
 }
@@ -168,6 +172,7 @@ int packet__read_uint16(struct mosquitto__packet *packet, uint16_t *word)
 
 void packet__write_uint16(struct mosquitto__packet *packet, uint16_t word)
 {
+	printf("packet__write_uint16() @ position %d\n", packet->pos);
 	packet__write_byte(packet, MOSQ_MSB(word));
 	packet__write_byte(packet, MOSQ_LSB(word));
 }
