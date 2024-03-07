@@ -1043,6 +1043,8 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 		/* Call normal write/send */
 #endif
 
+//#ifdef WITH_CES		
+
 	FILE *fp;
 	ssize_t result;
 	/** Grab time before network communication
@@ -1055,13 +1057,24 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 	
 	// IF OUR CUSTOM EFFICIENT-SECURITY PROTOCOL IS ENABLED
 	if (command == CMD_PUBLISH) {
-    	uint8_t *ciphertext = checkLookupTable(buf, count);
-        result = send(mosq->sock, ciphertext, count, MSG_NOSIGNAL);
-    } else {
-    	result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
-    }
+		printf("SENDING PUBLISH!\n");
+		uint8_t *ciphertext = checkLookupTable(buf, count);
+        	result = send(mosq->sock, ciphertext, count, MSG_NOSIGNAL);
+		return result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
+    	} else {
+		if (command == CMD_CONNACK) {
+                        printf("SENDING CONNACK!\n");
+        	} else if (command == CMD_PUBACK) {
+                        printf("SENDING PUBACK!\n");
+        	} else if (command == CMD_SUBACK) {
+                        printf("SENDING SUBACK!\n");
+		}
+    		return result = send(mosq->sock, buf, count, MSG_NOSIGNAL);
 
-	/** ELSE SEND A NORMAL SEND COMMAND (But for now we pretend that custom is law)
+    	}
+//#endif		
+/**
+	// ELSE SEND A NORMAL SEND COMMAND
 	if (command == CMD_CONNACK) {
 			printf("SENDING CONNACK\n");
 	} else if (command == CMD_PUBACK) {
@@ -1069,23 +1082,28 @@ ssize_t net__write(struct mosquitto *mosq, uint8_t *buf, uint8_t command, size_t
 	} else if (command == CMD_SUBACK) {
 			printf("SENDING SUBACK\n");
 	} else if (command == CMD_PUBLISH) {
-			printf("SENDING PUBLISH");
-	}*/
+			printf("SENDING PUBLISH\n");
+	}
 
 
-	/** Grab time after network communication
-        if (command == CMD_PUBLISH) {
-		struct timespec tp3;
-        	clock_gettime(clock, &tp3);
-        	fprintf(fp, "%ld\n", (long)(tp3.tv_sec*1000*1.0e6) + tp3.tv_nsec);
-        	fclose(fp);
-	}*/
+	// Grab time after network communication
+       // if (command == CMD_PUBLISH) {
+	//	struct timespec tp3;
+        //	clock_gettime(clock, &tp3);
+        //	fprintf(fp, "%ld\n", (long)(tp3.tv_sec*1000*1.0e6) + tp3.tv_nsec);
+        //	fclose(fp);
+	//}
 
-	return result;
-
+	return send(mosq->sock, buf, count, MSG_NOSIGNAL);
+*/
 #ifdef WITH_TLS
 	}
 #endif
+
+//#ifdef WITH_CES
+//	}
+//#endif
+
 }
 
 

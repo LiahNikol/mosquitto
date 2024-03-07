@@ -24,27 +24,30 @@ void encrypt(uint8_t *in, uint8_t *out, unsigned char *iv, size_t len) {
 }
 
 uint8_t *checkLookupTable(uint8_t *payload, size_t p_len /*, uint8_t *topic*/) {
-    struct plaintext_ciphertext_pair *tmp;
+    //struct plaintext_ciphertext_pair *tmp;
+	
+    printf("Payload length: %lu", p_len);
 
     // TODO: confirm that we won't get this far if there are no subscribers
-    HASH_FIND(hh, entries, payload, p_len, tmp);
-    if (tmp == NULL) { // no entry was found
-        tmp = (struct plaintext_ciphertext_pair *)mosquitto__malloc(sizeof(struct plaintext_ciphertext_pair));
+    //HASH_FIND_STR(entries, payload, tmp);
+    //if (tmp == NULL) { // no entry was found
+        //tmp = (struct plaintext_ciphertext_pair *)mosquitto__malloc(sizeof(struct plaintext_ciphertext_pair));
 
-        uint8_t *p_buf = (uint8_t *)mosquitto__malloc(sizeof(uint8_t) * p_len);
+        uint8_t *p_buf = (uint8_t *)mosquitto__malloc(p_len * sizeof(uint8_t));
         memcpy(p_buf, payload, p_len); 
-        tmp->plaintext = p_buf;
+        //tmp->plaintext = p_buf;
         
-        uint8_t *c_buf = (uint8_t *)mosquitto__malloc(sizeof(uint8_t) * p_len);
-        unsigned char iv[AES_BLOCK_SIZE];
-        assert(getrandom(iv, AES_BLOCK_SIZE, GRND_NONBLOCK) != -1);
+        uint8_t *c_buf = (uint8_t *)mosquitto__malloc(p_len * sizeof(uint8_t));
+        //unsigned char iv = "abcdefghijklmno";
+        //assert(getrandom(iv, AES_BLOCK_SIZE, GRND_NONBLOCK) != -1);
 
-        encrypt(p_buf, c_buf, iv, p_len);
-
-        tmp->ciphertext = c_buf;
-        HASH_ADD(hh, entries, plaintext, p_len, tmp);
-    }
-    return tmp->ciphertext;
+        //encrypt(p_buf, c_buf, iv, p_len);
+        
+        //tmp->ciphertext = c_buf;
+        //HASH_ADD_KEYPTR(hh, entries, tmp->plaintext, p_len, tmp);
+   //}
+   //return tmp->ciphertext;
+   return c_buf;
 }
 
 void debug (uint8_t *out, size_t len, int plaintext) {

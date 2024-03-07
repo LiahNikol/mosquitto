@@ -662,7 +662,7 @@ int sub__messages_queue(const char *source_id, const char *topic, uint8_t qos, i
  
 	HASH_FIND(hh, db.subs, split_topics[0], strlen(split_topics[0]), subhier);
 	if(subhier){
-    clockid_t clock = CLOCK_MONOTONIC;
+    /**clockid_t clock = CLOCK_MONOTONIC;
     struct timespec tp0;
     struct timespec tp1;
     time_t t = time(NULL);
@@ -673,15 +673,15 @@ int sub__messages_queue(const char *source_id, const char *topic, uint8_t qos, i
     size_t portstr = 4;
     size_t subscountdigits = 5; // extra room just in case
     size_t nsize = basestr + portstr + subscountdigits; char filepath[nsize];
-
+*/
     if ((*stored)->source_listener) { 
     	// Grab time before network communication
-    	clock_gettime(clock, &tp0);
+    //	clock_gettime(clock, &tp0);
     	printf("Checkpoint\n");
     }
 
 		rc = sub__search(subhier, split_topics, source_id, topic, qos, retain, *stored);
-    
+  /**  
     if ((*stored)->source_listener) {
     	//Grab time after network communication
     	clock_gettime(clock, &tp1);
@@ -689,7 +689,7 @@ int sub__messages_queue(const char *source_id, const char *topic, uint8_t qos, i
     	fp = fopen(filepath, "a");
     	fprintf(fp, "%ld,%ld\n", (long)(tp0.tv_sec*1000*1.0e6) + tp0.tv_nsec, (long)(tp1.tv_sec*1000*1.0e6) + tp1.tv_nsec);
     	fclose(fp);
-    }
+    }*/
 	}
   
   // Let me see all of stored's subscribers
