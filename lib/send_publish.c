@@ -203,7 +203,9 @@ int send__real_publish(struct mosquitto *mosq, uint16_t mid, const char *topic, 
 		packet__write_uint16(packet, mid);
 	}
 
+	printf("The running protocol is: %d\n", mosq->protocol);
 	if(mosq->protocol == mosq_p_mqtt5){
+		printf("hmmmmmmm\n");
 		packet__write_varint(packet, proplen);
 		property__write_all(packet, cmsg_props, false);
 		property__write_all(packet, store_props, false);
